@@ -191,4 +191,152 @@ if st.session_state.get("trained_model") is not None:
         mime="text/csv",
     )
 
+    # ====== PREDIKSI TAHUN 2026 ======
+    st.markdown("---")
+    st.markdown("### 🔮 Prediksi Hasil Panen Padi Tahun 2026")
+    st.caption(f"Prediksi dilakukan secara rekursif berdasarkan time step = **{p_ts} periode**. Setiap langkah prediksi menggunakan output prediksi sebelumnya sebagai input berikutnya.")
+
+    model_2026 = st.session_state.trained_model
+    scaler_x_2026 = st.session_state.scaler_x
+    scaler_y_2026 = st.session_state.scaler_y
+    df_work = st.session_state.preprocessed_df
+    p_feats_2026 = st.session_state.feature_cols
+    p_target_2026 = st.session_state.target_col
+
+    try:
+        from sklearn.preprocessing import MinMaxScaler, StandardScaler
+        scaler_name_2026 = st.session_state.get("scaler_name", "Min-Max")
+        scaler_cls_2026 = MinMaxScaler if scaler_name_2026 == "Min-Max" else StandardScaler
+
+        # Ambil data terakhir sebagai seed
+        # Pastikan hanya kolom numerik yang digunakan (filter Timestamp/object)
+        work_numeric_2026 = df_work[p_feats_2026].copy()
+        for col in work_numeric_2026.columns:
+            if hasattr(work_numeric_2026[col], "dt") or pd.api.types.is_datetime64_any_dtype(work_numeric_2026[col]):
+                # Konversi datetime ke ordinal int agar bisa di-scale
+                work_numeric_2026[col] = work_numeric_2026[col].apply(
+                    lambda x: x.toordinal() if pd.notnull(x) else 0
+                )
+            elif work_numeric_2026[col].dtype == object:
+                # Coba konversi ke numeric, isi NaN dengan 0
+                work_numeric_2026[col] = pd.to_numeric(work_numeric_2026[col], errors="coerce").fillna(0)
+        work_arr_2026 = work_numeric_2026.values.astype(float)
+        x_all_2026 = scaler_x_2026.transform(work_arr_2026)
+
+        # Tentukan jumlah prediksi berdasarkan time_step: minimal 4 (triwulan), atau sesuai time step
+        n_pred_2026 = max(4, p_ts)  # setidaknya 4 periode untuk Q1-Q4
+
+        # Recursive forecast
+        last_window = x_all_2026[-p_ts:].copy()  # shape (time_step, n_features)
+        target_idx = p_feats_2026.index(p_target_2026)
+
+        preds_scaled_2026 = []
+        window = last_window.copy()
+        for step in range(n_pred_2026):
+            inp = window.reshape(1, p_ts, len(p_feats_2026))
+            pred_s = model_2026.predict(inp, verbose=0).ravel()[0]
+            preds_scaled_2026.append(pred_s)
+            # Geser window dan update nilai target
+            new_row = window[-1].copy()
+            new_row[target_idx] = pred_s
+            window = np.vstack([window[1:], new_row])
+
+        # Inverse transform ke satuan asli
+        preds_2026 = scaler_y_2026.inverse_transform(np.array(preds_scaled_2026).reshape(-1, 1)).ravel()
+
+        # Buat label periode
+        period_labels_2026 = [f"Periode {i+1} / 2026" for i in range(n_pred_2026)]
+
+        # Tampilkan metrik ringkas
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: 14px; padding: 20px 24px; color: white; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 8px 0; color: #a7f3d0;">📊 Ringkasan Prediksi 2026</h4>
+            <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+                <div><span style="font-size: 0.8rem; color: #d1fae5;">Jumlah Periode Diprediksi</span><br><strong style="font-size: 1.4rem;">{n_pred_2026} Periode</strong></div>
+                <div><span style="font-size: 0.8rem; color: #d1fae5;">Total Prediksi (Quintal)</span><br><strong style="font-size: 1.4rem;">{sum(preds_2026):,.2f} Kw</strong></div>
+                <div><span style="font-size: 0.8rem; color: #d1fae5;">Total Prediksi (Ton)</span><br><strong style="font-size: 1.4rem;">{sum(preds_2026)/10:,.2f} Ton</strong></div>
+                <div><span style="font-size: 0.8rem; color: #d1fae5;">Rata-rata per Periode</span><br><strong style="font-size: 1.4rem;">{sum(preds_2026)/n_pred_2026:,.2f} Kw</strong></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Tabel prediksi
+        df_pred_2026 = pd.DataFrame({
+            "Periode": period_labels_2026,
+            "Prediksi (Quintal/Kw)": preds_2026,
+            "Prediksi (Ton)": preds_2026 / 10,
+        })
+
+        st.dataframe(df_pred_2026.style.format({
+            "Prediksi (Quintal/Kw)": "{:,.2f}",
+            "Prediksi (Ton)": "{:,.3f}",
+        }), use_container_width=True)
+
+        # Grafik line prediksi 2026
+        st.markdown("#### 📈 Grafik Prediksi Deret Waktu 2026")
+        chart_df_2026 = pd.DataFrame({
+            "Periode": period_labels_2026,
+            "Prediksi (Quintal)": preds_2026,
+        }).set_index("Periode")
+        st.line_chart(chart_df_2026, color=["#10b981"])
+
+        # === ANALISIS KUARTAL (Q1–Q4) ===
+        st.markdown("#### 📊 Analisis Per Kuartal Tahun 2026")
+        st.caption("Pembagian kuartal dilakukan secara merata dari total periode yang diprediksi.")
+
+        # Bagi ke 4 kuartal secara proporsional
+        n = len(preds_2026)
+        q_size = n // 4
+        remainder = n % 4
+
+        q_vals = []
+        q_labels = []
+        idx_start = 0
+        for q in range(4):
+            extra = 1 if q < remainder else 0
+            idx_end = idx_start + q_size + extra
+            q_sum_kw = float(np.sum(preds_2026[idx_start:idx_end])) if idx_end > idx_start else 0.0
+            q_vals.append(q_sum_kw)
+            q_labels.append(f"Q{q+1} 2026")
+            idx_start = idx_end
+
+        q_df = pd.DataFrame({
+            "Kuartal": q_labels,
+            "Total (Quintal/Kw)": q_vals,
+            "Total (Ton)": [v/10 for v in q_vals],
+        })
+
+        # Kolom: bar chart kuartal + tabel total
+        col_bar, col_tot = st.columns([2, 1])
+        with col_bar:
+            st.bar_chart(q_df.set_index("Kuartal")[["Total (Quintal/Kw)"]], color=["#059669"])
+            st.caption("Diagram batang total produksi per kuartal (Quintal/Kw)")
+        with col_tot:
+            st.markdown("**📋 Rincian Per Kuartal**")
+            for _, row in q_df.iterrows():
+                st.metric(
+                    label=row["Kuartal"],
+                    value=f"{row['Total (Quintal/Kw)']:,.2f} Kw",
+                    delta=f"{row['Total (Ton)']:,.3f} Ton"
+                )
+            st.markdown(f"""
+            <div style="background: #f0fdf4; border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 12px 16px; margin-top: 12px;">
+                <div style="font-weight: 700; color: #065f46; margin-bottom: 4px;">🧮 Total Keseluruhan 2026</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #059669;">{sum(q_vals):,.2f} Kw</div>
+                <div style="font-size: 0.9rem; color: #047857;">{sum(q_vals)/10:,.3f} Ton</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Download prediksi 2026
+        st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+        st.download_button(
+            "📥 Unduh Prediksi 2026 (CSV)",
+            data=df_pred_2026.to_csv(index=False).encode("utf-8"),
+            file_name="prediksi_panen_2026.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    except Exception as e_2026:
+        st.error(f"Gagal membuat prediksi 2026: {e_2026}")
+
 render_step_navigation(6)

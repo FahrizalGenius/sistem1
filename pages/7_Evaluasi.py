@@ -95,8 +95,10 @@ else:
 
 result = pd.DataFrame({
     "Periode": x_axis,
-    "Nilai Aktual": np.asarray(y_true, dtype=float),
-    "Nilai Prediksi": np.asarray(y_pred, dtype=float),
+    "Nilai Aktual (Kw)": np.asarray(y_true, dtype=float),
+    "Nilai Aktual (Ton)": np.asarray(y_true, dtype=float) / 10,
+    "Nilai Prediksi (Kw)": np.asarray(y_pred, dtype=float),
+    "Nilai Prediksi (Ton)": np.asarray(y_pred, dtype=float) / 10,
     "Error (Selisih)": np.asarray(y_true, dtype=float) - np.asarray(y_pred, dtype=float),
     "Error Absolut (%)": np.abs((np.asarray(y_true, dtype=float) - np.asarray(y_pred, dtype=float)) / np.where(y_true != 0, y_true, 1)) * 100
 })
@@ -107,7 +109,7 @@ st.markdown("### 📈 Visualisasi Aktual vs Prediksi Model")
 tab_plot1, tab_plot2 = st.tabs(["📉 Grafik Deret Waktu (Aktual vs Prediksi)", "📊 Analisis Residual Error"])
 
 with tab_plot1:
-    chart_df = result.set_index("Periode")[["Nilai Aktual", "Nilai Prediksi"]]
+    chart_df = result.set_index("Periode")[["Nilai Aktual (Kw)", "Nilai Prediksi (Kw)"]]
     st.line_chart(chart_df, color=["#059669", "#2563eb"])
     st.caption("🟢 Hijau: Nilai Aktual Panen | 🔵 Biru: Nilai Prediksi Model Deep Learning.")
 
@@ -118,11 +120,62 @@ with tab_plot2:
 
 st.markdown("<div style='margin-bottom: 28px;'></div>", unsafe_allow_html=True)
 
+# === ANALISIS KUARTAL DATA UJI ===
+st.markdown("### 📊 Analisis Kuartal Data Uji")
+n_q = len(y_true)
+q_size_e = n_q // 4
+rem_e = n_q % 4
+q_actual_kw, q_pred_kw, q_labels_e = [], [], []
+idx_s = 0
+for q in range(4):
+    extra = 1 if q < rem_e else 0
+    idx_e = idx_s + q_size_e + extra
+    if idx_e > idx_s:
+        q_actual_kw.append(float(np.sum(y_true[idx_s:idx_e])))
+        q_pred_kw.append(float(np.sum(np.asarray(y_pred, dtype=float)[idx_s:idx_e])))
+    else:
+        q_actual_kw.append(0.0)
+        q_pred_kw.append(0.0)
+    q_labels_e.append(f"Q{q+1}")
+    idx_s = idx_e
+
+q_eval_df = pd.DataFrame({
+    "Kuartal": q_labels_e,
+    "Aktual (Kw)": q_actual_kw,
+    "Prediksi (Kw)": q_pred_kw,
+    "Aktual (Ton)": [v/10 for v in q_actual_kw],
+    "Prediksi (Ton)": [v/10 for v in q_pred_kw],
+})
+
+col_qbar, col_qtot = st.columns([2, 1])
+with col_qbar:
+    st.bar_chart(q_eval_df.set_index("Kuartal")[["Aktual (Kw)", "Prediksi (Kw)"]], color=["#059669", "#2563eb"])
+    st.caption("🟢 Aktual vs 🔵 Prediksi per Kuartal (Quintal/Kw)")
+with col_qtot:
+    st.markdown("**📋 Total Per Kuartal**")
+    for _, row in q_eval_df.iterrows():
+        st.metric(
+            label=f"{row['Kuartal']} — Aktual",
+            value=f"{row['Aktual (Kw)']:,.2f} Kw",
+            delta=f"Pred: {row['Prediksi (Kw)']:,.2f} Kw"
+        )
+    st.markdown(f"""
+    <div style="background: #f0fdf4; border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 12px 16px; margin-top: 8px;">
+        <div style="font-weight: 700; color: #065f46; margin-bottom: 4px;">🧮 Total Data Uji</div>
+        <div style="color: #059669;"><strong>Aktual:</strong> {sum(q_actual_kw):,.2f} Kw / {sum(q_actual_kw)/10:,.3f} Ton</div>
+        <div style="color: #2563eb;"><strong>Prediksi:</strong> {sum(q_pred_kw):,.2f} Kw / {sum(q_pred_kw)/10:,.3f} Ton</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<div style='margin-bottom: 28px;'></div>", unsafe_allow_html=True)
+
 # --- TABEL RINCIAN & PUSAT EKSPOR ---
 st.markdown("### 📋 Tabel Rincian Prediksi Data Uji")
 st.dataframe(result.style.format({
-    "Nilai Aktual": "{:,.2f}",
-    "Nilai Prediksi": "{:,.2f}",
+    "Nilai Aktual (Kw)": "{:,.2f}",
+    "Nilai Aktual (Ton)": "{:,.3f}",
+    "Nilai Prediksi (Kw)": "{:,.2f}",
+    "Nilai Prediksi (Ton)": "{:,.3f}",
     "Error (Selisih)": "{:,.2f}",
     "Error Absolut (%)": "{:.2f}%"
 }), use_container_width=True)

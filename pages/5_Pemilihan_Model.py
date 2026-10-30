@@ -52,7 +52,7 @@ with c1:
         <span style="font-size: 0.75rem; color: #64748b;">Neuron & Kedalaman Lapisan</span>
     </div>
     """, unsafe_allow_html=True)
-    units = st.select_slider("Jumlah Unit LSTM (Hidden Neurons):", options=[16, 24, 32, 48, 64, 96, 128], value=64)
+    units = st.selectbox("Jumlah Unit LSTM (Hidden Neurons):", [16, 24, 32, 48, 64, 96, 128], index=4)
     layers = st.selectbox("Jumlah Lapisan (Layers) LSTM:", [1, 2, 3], index=0)
 
 with c2:
@@ -63,7 +63,7 @@ with c2:
     </div>
     """, unsafe_allow_html=True)
     learning_rate = st.selectbox("Learning Rate (Adam Optimizer):", [0.0001, 0.0005, 0.001, 0.005, 0.01], index=2)
-    dropout = st.slider("Tingkat Dropout (0 s.d 0.5):", 0.0, 0.5, 0.1, 0.05)
+    dropout = st.selectbox("Tingkat Dropout:", [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50], index=2)
 
 with c3:
     st.markdown("""
@@ -73,9 +73,9 @@ with c3:
     </div>
     """, unsafe_allow_html=True)
     batch_size = st.selectbox("Batch Size:", [8, 16, 32, 64], index=1)
-    epochs = st.slider("Maksimum Epoch Pelatihan:", 10, 200, 50, 5)
+    epochs = st.selectbox("Maksimum Epoch Pelatihan:", [10, 20, 30, 40, 50, 60, 70, 80, 90, 100], index=4)
 
-validation_split = st.slider("Proporsi Validasi Internal dari Data Latih (Chronological Tail):", 0.0, 0.3, 0.15, 0.05)
+validation_split = st.selectbox("Proporsi Validasi Internal (Chronological Tail):", [0.05, 0.10, 0.15, 0.20, 0.25, 0.30], index=2)
 st.caption("ℹ️ Validasi menggunakan potongan akhir data latih secara kronologis (tanpa shuffle) untuk early stopping & evaluasi fitness.")
 
 pso_config = {}
@@ -85,17 +85,19 @@ if model_choice == "LSTM-PSO":
 
     p1, p2, p3 = st.columns(3)
     with p1:
-        particles = st.slider("Jumlah Partikel (Swarm Size):", 3, 20, 5, help="Jumlah kombinasi kandidat per iterasi pencarian.")
+        particles = st.selectbox("Jumlah Partikel (Swarm Size):", [3, 5, 8, 10, 15, 20], index=1, help="Jumlah kombinasi kandidat per iterasi pencarian.")
     with p2:
-        iterations = st.slider("Jumlah Iterasi PSO (Generasi):", 1, 20, 5, help="Siklus pergerakan swarm menuju gbest.")
+        iterations = st.selectbox("Jumlah Iterasi PSO (Generasi):", list(range(1, 51)), index=4, help="Siklus pergerakan swarm menuju gbest.")
     with p3:
-        epochs_search = st.slider("Epoch Evaluasi Tiap Partikel:", 3, 30, 8, help="Epoch ringkas untuk mengevaluasi loss kandidat.")
+        epochs_search = st.selectbox("Epoch Evaluasi Tiap Partikel:", [3, 5, 8, 10, 15, 20], index=2, help="Epoch ringkas untuk mengevaluasi loss kandidat.")
 
     col_u, col_lr = st.columns(2)
     with col_u:
-        units_min, units_max = st.select_slider("Rentang Pencarian Unit LSTM:", options=[16, 24, 32, 48, 64, 96, 128], value=(16, 96))
+        units_min = st.selectbox("Unit LSTM Min:", [16, 24, 32, 48, 64, 96, 128], index=0, key="pso_units_min")
+        units_max = st.selectbox("Unit LSTM Max:", [16, 24, 32, 48, 64, 96, 128], index=5, key="pso_units_max")
     with col_lr:
-        lr_min, lr_max = st.select_slider("Rentang Pencarian Learning Rate:", options=[0.0001, 0.0005, 0.001, 0.005, 0.01], value=(0.0001, 0.005))
+        lr_min = st.selectbox("Learning Rate Min:", [0.0001, 0.0005, 0.001, 0.005, 0.01], index=0, key="pso_lr_min")
+        lr_max = st.selectbox("Learning Rate Max:", [0.0001, 0.0005, 0.001, 0.005, 0.01], index=3, key="pso_lr_max")
 
     pso_config = {
         "particles": particles,

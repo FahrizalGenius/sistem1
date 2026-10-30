@@ -33,10 +33,10 @@ with col_config1:
 
     curr_ts = int(st.session_state.get("time_step", 6))
     time_step_options = [1, 2, 3, 4, 6, 8, 12, 18, 24]
-    time_step = st.select_slider(
+    time_step = st.selectbox(
         "Pilih Time Step (Lag Window):",
         options=time_step_options,
-        value=curr_ts if curr_ts in time_step_options else 6,
+        index=time_step_options.index(curr_ts) if curr_ts in time_step_options else 4,
         help="Contoh: Time Step 6 pada data bulanan berarti model melihat 6 bulan terakhir untuk memprediksi panen bulan ke-7."
     )
 

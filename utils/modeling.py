@@ -14,10 +14,15 @@ def prepare_sequences(df, feature_cols, target_col, time_step, split_ratio, scal
 
     work = df[feature_cols].copy()
     for col in feature_cols:
-        work[col] = pd.to_numeric(work[col], errors="coerce")
-    work = work.replace([np.inf, -np.inf], np.nan)
+        # Tangani kolom Timestamp/datetime sebelum to_numeric
+        if pd.api.types.is_datetime64_any_dtype(work[col]):
+            work[col] = work[col].apply(lambda x: float(x.toordinal()) if pd.notnull(x) else float("nan"))
+        else:
+            work[col] = pd.to_numeric(work[col], errors="coerce")
+    work = work.replace([np.inf, -np.inf], float("nan"))
     if work.isna().any().any():
-        raise ValueError("Masih ada missing/non-numeric value pada fitur yang dipilih. Periksa preprocessing.")
+        bad_cols = work.columns[work.isna().any()].tolist()
+        raise ValueError(f"Masih ada missing/non-numeric value pada kolom: {bad_cols}. Hapus kolom tersebut dari daftar fitur.")
     if len(work) <= time_step + 2:
         raise ValueError("Data terlalu sedikit untuk time step yang dipilih.")
 
