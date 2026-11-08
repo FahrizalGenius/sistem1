@@ -26,28 +26,38 @@ r2_val = metrics.get("R²", 0.0)
 mape_val = metrics.get("MAPE (%)", 0.0)
 
 if r2_val >= 0.85 and mape_val <= 10.0:
-    eval_status = "Sangat Akurat & Handal 🌟"
+    eval_status = "Sangat Akurat & Handal"
     status_bg = "#d1fae5"
     status_color = "#065f46"
 elif r2_val >= 0.70 and mape_val <= 20.0:
-    eval_status = "Kinerja Baik & Layak Pakai 👍"
+    eval_status = "Kinerja Baik & Layak Pakai"
     status_bg = "#eff6ff"
     status_color = "#1e40af"
 elif r2_val > 0.40:
-    eval_status = "Kinerja Cukup (Dapat Dioptimasi Lagi) ⚠️"
+    eval_status = "Kinerja Cukup (Dapat Dioptimasi Lagi)"
     status_bg = "#fef3c7"
     status_color = "#92400e"
 else:
-    eval_status = "Performa Perlu Peningkatan ❌"
+    eval_status = "Performa Perlu Peningkatan"
     status_bg = "#fee2e2"
     status_color = "#991b1b"
 
+# Ambil info kabupaten & frekuensi aktif
+selected_kab = st.session_state.get("selected_kabupaten", "Seluruh Data (Semua Kabupaten)")
+model_choice = st.session_state.get("model_choice", "LSTM")
+eval_freq = st.session_state.get("frequency", "Bulanan (Monthly)")
+
 # --- HERO METRICS HEADER ---
+kab_label_html = ""
+if selected_kab and selected_kab != "Seluruh Data (Semua Kabupaten)":
+    kab_label_html = f'<span style="font-size: 0.8rem; color: #064e3b; background: #d1fae5; padding: 3px 10px; border-radius: 12px; font-weight: 600; margin-left: 10px;">{selected_kab}</span>'
+kab_label_html += f'<span style="font-size: 0.8rem; color: #1e40af; background: #eff6ff; padding: 3px 10px; border-radius: 12px; font-weight: 600; margin-left: 6px;">{eval_freq}</span>'
+
 st.markdown(f"""
 <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.03);">
     <div>
         <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Model yang Dievaluasi:</span>
-        <h3 style="margin: 2px 0 0 0; color: #064e3b; font-size: 1.3rem;">🌾 {st.session_state.get('model_choice', 'LSTM')}</h3>
+        <h3 style="margin: 2px 0 0 0; color: #064e3b; font-size: 1.3rem;">🌾 {model_choice}{kab_label_html}</h3>
     </div>
     <div style="display: flex; align-items: center; gap: 10px;">
         <span style="font-size: 0.82rem; color: #475569;">Penilaian Akurasi:</span>
@@ -63,23 +73,23 @@ col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
     mae_val = metrics["MAE"]
-    st.metric("📏 MAE", f"{mae_val:,.2f}" if np.isfinite(mae_val) else "—", "Error rata-rata absolut")
+    st.metric("MAE", f"{mae_val:,.2f}" if np.isfinite(mae_val) else "—", "Error rata-rata absolut")
 
 with col2:
     rmse_val = metrics["RMSE"]
-    st.metric("📐 RMSE", f"{rmse_val:,.2f}" if np.isfinite(rmse_val) else "—", "Akar error kuadrat")
+    st.metric("RMSE", f"{rmse_val:,.2f}" if np.isfinite(rmse_val) else "—", "Akar error kuadrat")
 
 with col3:
     mse_val = metrics["MSE"]
-    st.metric("📊 MSE", f"{mse_val:,.1f}" if np.isfinite(mse_val) else "—", "Mean squared error")
+    st.metric("MSE", f"{mse_val:,.1f}" if np.isfinite(mse_val) else "—", "Mean squared error")
 
 with col4:
     mape_str = f"{mape_val:.2f}%" if np.isfinite(mape_val) else "—"
-    st.metric("🎯 MAPE", mape_str, "Persentase error")
+    st.metric("MAPE (%)", mape_str, "Persentase error")
 
 with col5:
     r2_str = f"{r2_val:.4f}" if np.isfinite(r2_val) else "—"
-    st.metric("🌟 R² Score", r2_str, "Koefisien determinasi")
+    st.metric("R² Score", r2_str, "Koefisien determinasi")
 
 st.markdown("<div style='margin-bottom: 28px;'></div>", unsafe_allow_html=True)
 
@@ -104,14 +114,14 @@ result = pd.DataFrame({
 })
 
 # --- GRAFIK INTERAKTIF ---
-st.markdown("### 📈 Visualisasi Aktual vs Prediksi Model")
+st.markdown("### Visualisasi Aktual vs Prediksi Model")
 
-tab_plot1, tab_plot2 = st.tabs(["📉 Grafik Deret Waktu (Aktual vs Prediksi)", "📊 Analisis Residual Error"])
+tab_plot1, tab_plot2 = st.tabs(["Grafik Deret Waktu (Aktual vs Prediksi)", "Analisis Residual Error"])
 
 with tab_plot1:
     chart_df = result.set_index("Periode")[["Nilai Aktual (Kw)", "Nilai Prediksi (Kw)"]]
     st.line_chart(chart_df, color=["#059669", "#2563eb"])
-    st.caption("🟢 Hijau: Nilai Aktual Panen | 🔵 Biru: Nilai Prediksi Model Deep Learning.")
+    st.caption("Hijau: Nilai Aktual Panen   |   Biru: Nilai Prediksi Model Deep Learning.")
 
 with tab_plot2:
     error_df = result.set_index("Periode")[["Error (Selisih)"]]
@@ -121,7 +131,7 @@ with tab_plot2:
 st.markdown("<div style='margin-bottom: 28px;'></div>", unsafe_allow_html=True)
 
 # === ANALISIS KUARTAL DATA UJI ===
-st.markdown("### 📊 Analisis Kuartal Data Uji")
+st.markdown("### Analisis Kuartal Data Uji (Q1 - Q4)")
 n_q = len(y_true)
 q_size_e = n_q // 4
 rem_e = n_q % 4
@@ -150,9 +160,9 @@ q_eval_df = pd.DataFrame({
 col_qbar, col_qtot = st.columns([2, 1])
 with col_qbar:
     st.bar_chart(q_eval_df.set_index("Kuartal")[["Aktual (Kw)", "Prediksi (Kw)"]], color=["#059669", "#2563eb"])
-    st.caption("🟢 Aktual vs 🔵 Prediksi per Kuartal (Quintal/Kw)")
+    st.caption("Hijau: Aktual   |   Biru: Prediksi   —   Satuan Quintal (Kw) per Kuartal")
 with col_qtot:
-    st.markdown("**📋 Total Per Kuartal**")
+    st.markdown("**Total Per Kuartal**")
     for _, row in q_eval_df.iterrows():
         st.metric(
             label=f"{row['Kuartal']} — Aktual",
@@ -161,7 +171,7 @@ with col_qtot:
         )
     st.markdown(f"""
     <div style="background: #f0fdf4; border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 12px 16px; margin-top: 8px;">
-        <div style="font-weight: 700; color: #065f46; margin-bottom: 4px;">🧮 Total Data Uji</div>
+        <div style="font-weight: 700; color: #065f46; margin-bottom: 4px;">Total Keseluruhan Data Uji</div>
         <div style="color: #059669;"><strong>Aktual:</strong> {sum(q_actual_kw):,.2f} Kw / {sum(q_actual_kw)/10:,.3f} Ton</div>
         <div style="color: #2563eb;"><strong>Prediksi:</strong> {sum(q_pred_kw):,.2f} Kw / {sum(q_pred_kw)/10:,.3f} Ton</div>
     </div>
@@ -170,7 +180,7 @@ with col_qtot:
 st.markdown("<div style='margin-bottom: 28px;'></div>", unsafe_allow_html=True)
 
 # --- TABEL RINCIAN & PUSAT EKSPOR ---
-st.markdown("### 📋 Tabel Rincian Prediksi Data Uji")
+st.markdown("### Tabel Rincian Prediksi Data Uji")
 st.dataframe(result.style.format({
     "Nilai Aktual (Kw)": "{:,.2f}",
     "Nilai Aktual (Ton)": "{:,.3f}",
@@ -185,7 +195,7 @@ st.markdown("<div style='margin-bottom: 16px;'></div>", unsafe_allow_html=True)
 col_dl1, col_dl2 = st.columns(2)
 with col_dl1:
     st.download_button(
-        "📥 Unduh Hasil Lengkap Aktual & Prediksi (CSV)",
+        "Unduh Hasil Lengkap Aktual & Prediksi (CSV)",
         data=result.to_csv(index=False).encode("utf-8"),
         file_name="hasil_lengkap_evaluasi_prediksi.csv",
         mime="text/csv",
@@ -193,7 +203,7 @@ with col_dl1:
     )
 with col_dl2:
     st.download_button(
-        "📥 Unduh Ringkasan Metrik Evaluasi (CSV)",
+        "Unduh Ringkasan Metrik Evaluasi (CSV)",
         data=pd.DataFrame([metrics]).to_csv(index=False).encode("utf-8"),
         file_name="ringkasan_metrik_evaluasi.csv",
         mime="text/csv",

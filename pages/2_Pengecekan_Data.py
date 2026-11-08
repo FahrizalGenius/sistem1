@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.data import missing_summary
+from utils.data import missing_summary, find_kabupaten_column, get_kabupaten_list
 from utils.state import can_open, invalidate_from, mark_complete
 from utils.ui import stage_header, require_previous, render_step_navigation
 
@@ -18,7 +18,7 @@ total_missing = int(df.isna().sum().sum())
 dup_count = int(df.duplicated().sum())
 completeness_pct = round(((total_cells - total_missing) / total_cells) * 100, 2) if total_cells > 0 else 100
 
-st.markdown("### 🩺 Skor Kualitas & Integritas Data")
+st.markdown("### Skor Kualitas & Integritas Data")
 c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.metric("Tingkat Kelengkapan", f"{completeness_pct}%", "Data utuh" if total_missing == 0 else f"{total_missing} nilai kosong")
@@ -32,10 +32,9 @@ with c4:
 st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
 # --- TABEL RINGKASAN PER KOLOM ---
-st.markdown("### 📋 Audit Kualitas Per Kolom")
+st.markdown("### Audit Kualitas Per Kolom")
 summary = missing_summary(df)
 
-# Highlight styling jika ada missing value
 def highlight_missing(row):
     if row["Missing value"] > 0:
         return ["background-color: #fef2f2; color: #991b1b; font-weight: 600;"] * len(row)
@@ -44,13 +43,21 @@ def highlight_missing(row):
 st.dataframe(summary.style.apply(highlight_missing, axis=1), use_container_width=True)
 
 if dup_count > 0:
-    with st.expander(f"⚠️ Ditemukan {dup_count} Baris Duplikat — Klik untuk Meninjau", expanded=False):
+    with st.expander(f"Ditemukan {dup_count} Baris Duplikat - Klik untuk Meninjau", expanded=False):
         st.dataframe(df[df.duplicated(keep=False)], use_container_width=True)
+
+kab_col_check = find_kabupaten_column(df)
+if kab_col_check:
+    kab_counts = df[kab_col_check].astype(str).value_counts().reset_index()
+    kab_counts.columns = ["Kabupaten / Wilayah", "Jumlah Baris Observasi"]
+    kab_counts["Persentase (%)"] = ((kab_counts["Jumlah Baris Observasi"] / len(df)) * 100).round(2)
+    with st.expander(f"Distribusi Data per Wilayah/Kabupaten (Kolom: '{kab_col_check}') - {len(kab_counts)} Wilayah", expanded=True):
+        st.dataframe(kab_counts, use_container_width=True)
 
 st.markdown("<div style='margin-bottom: 28px;'></div>", unsafe_allow_html=True)
 
 # --- STRATEGI PENANGANAN DATA ---
-st.markdown("### 🛠️ Pengaturan Pembersihan Data")
+st.markdown("### Pengaturan Pembersihan Data")
 
 col_left, col_right = st.columns(2)
 
@@ -86,9 +93,9 @@ with col_right:
         label_visibility="collapsed"
     )
 
-st.caption("ℹ️ Data mentah asli tetap tersimpan secara aman di session state; pembersihan diterapkan pada dataset kerja.")
+st.caption("Data mentah asli tetap tersimpan secara aman di session state; pembersihan diterapkan pada dataset kerja.")
 
-if st.button("🚀 Terapkan Pembersihan & Simpan Hasil", type="primary", use_container_width=True):
+if st.button("Terapkan Pembersihan & Simpan Hasil", type="primary", use_container_width=True):
     cleaned = df.copy()
     if duplicate_action == "Hapus baris duplikat":
         cleaned = cleaned.drop_duplicates()
@@ -109,14 +116,14 @@ if st.button("🚀 Terapkan Pembersihan & Simpan Hasil", type="primary", use_con
     st.session_state.missing_action = missing_action
     st.session_state.duplicate_action = duplicate_action
     mark_complete(2)
-    st.success(f"✅ Pembersihan berhasil diterapkan! Dataset kerja sekarang memiliki **{len(cleaned):,} baris**.")
+    st.success(f"Pembersihan berhasil diterapkan! Dataset kerja sekarang memiliki **{len(cleaned):,} baris**.")
     st.rerun()
 
 clean_df = st.session_state.get("clean_df")
 if clean_df is not None:
     st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
-    st.info(f"✨ **Dataset Bersih Tersimpan:** {len(clean_df):,} baris × {clean_df.shape[1]} kolom siap diproses.")
-    with st.expander("👁️ Pratinjau Dataset Hasil Pembersihan (30 Baris Pertama)"):
+    st.info(f"**Dataset Bersih Tersimpan:** {len(clean_df):,} baris × {clean_df.shape[1]} kolom siap diproses.")
+    with st.expander("Pratinjau Dataset Hasil Pembersihan (30 Baris Pertama)"):
         st.dataframe(clean_df.head(30), use_container_width=True)
 
 render_step_navigation(2)

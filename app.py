@@ -36,15 +36,21 @@ st.markdown("""
 # Quick Action Bar
 c_cta1, c_cta2, c_spacer = st.columns([1.5, 1.8, 2.7])
 with c_cta1:
-    st.page_link("pages/1_Upload_Dataset.py", label="Mulai Pipeline Sekarang ➔", icon="🚀", use_container_width=True)
+    st.page_link("pages/1_Upload_Dataset.py", label="Mulai Pipeline Sekarang ->", icon="🌾", use_container_width=True)
 
 with c_cta2:
-    if st.button("⚡ Muat Contoh Dataset Demo (10 Tahun)", use_container_width=True, help="Otomatis memuat data simulasi panen padi Jawa Barat/Jawa Timur (120 bulan)"):
+    if st.button("Muat Contoh Dataset Demo (10 Tahun)", use_container_width=True, help="Otomatis memuat data simulasi panen padi Jawa Barat/Jawa Timur (120 bulan)"):
         df_sample = generate_sample_paddy_data()
         st.session_state.raw_df = df_sample
         st.session_state.source_name = "Dataset_Demo_Panen_Padi_120Bulan.csv"
+        st.session_state.selected_kabupaten = "Seluruh Data (Semua Kabupaten)"
+        st.session_state.kabupaten_col = None
+        st.session_state.detected_frequency = "Bulanan (Monthly)"
+        st.session_state.frequency = "Bulanan (Monthly)"
+        st.session_state.frequency_reason = "Dataset simulasi bulanan 120 bulan (10 tahun)"
+        st.session_state.time_step = 6
         mark_complete(1)
-        st.success("✅ Dataset simulasi panen padi berhasil dimuat! Anda dapat langsung lanjut ke Tahap 2.")
+        st.success("Dataset simulasi panen padi berhasil dimuat! Anda dapat langsung lanjut ke Tahap 2.")
         st.rerun()
 
 st.markdown("<div style='margin-bottom: 24px;'></div>", unsafe_allow_html=True)
@@ -54,36 +60,38 @@ df = st.session_state.get("raw_df")
 preprocessed = st.session_state.get("preprocessed_df")
 model = st.session_state.get("trained_model")
 metrics = st.session_state.get("eval_metrics")
+kab = st.session_state.get("selected_kabupaten", "Seluruh Data (Semua Kabupaten)")
 
 k1, k2, k3, k4 = st.columns(4)
 
 with k1:
     if df is not None:
-        st.metric("📊 Dataset", f"{len(df):,} Baris", f"{len(df.columns)} Kolom")
+        delta_kab = f"Wilayah: {kab}" if kab != "Seluruh Data (Semua Kabupaten)" else f"{len(df.columns)} Kolom"
+        st.metric("Dataset", f"{len(df):,} Baris", delta_kab)
     else:
-        st.metric("📊 Dataset", "Belum Ada", "Menunggu upload")
+        st.metric("Dataset", "Belum Ada", "Menunggu upload")
 
 with k2:
     if preprocessed is not None:
         target = st.session_state.get("target_col", "Target")
         feats_count = len(st.session_state.get("feature_cols", []))
-        st.metric("⚙️ Fitur & Target", f"{feats_count} Fitur", f"Target: {target[:12]}..")
+        st.metric("Fitur & Target", f"{feats_count} Fitur", f"Target: {target[:12]}..")
     else:
-        st.metric("⚙️ Fitur & Target", "Belum Diatur", "Tahap 3")
+        st.metric("Fitur & Target", "Belum Diatur", "Tahap 3")
 
 with k3:
     if model is not None:
         m_name = st.session_state.get("model_choice", "LSTM")
-        st.metric("🧠 Model Aktif", m_name, "Model dilatih")
+        st.metric("Model Aktif", m_name, "Model dilatih")
     else:
-        st.metric("🧠 Model Aktif", "Belum Dipilih", "Tahap 5 & 6")
+        st.metric("Model Aktif", "Belum Dipilih", "Tahap 5 & 6")
 
 with k4:
     if metrics and "R²" in metrics and np.isfinite(metrics["R²"]):
         r2_pct = metrics["R²"]
-        st.metric("📈 Akurasi (R²)", f"{r2_pct:.4f}", f"MAPE: {metrics.get('MAPE (%)', 0):.2f}%")
+        st.metric("Akurasi (R²)", f"{r2_pct:.4f}", f"MAPE: {metrics.get('MAPE (%)', 0):.2f}%")
     else:
-        st.metric("📈 Akurasi (R²)", "—", "Menunggu evaluasi")
+        st.metric("Akurasi (R²)", "—", "Menunggu evaluasi")
 
 st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 
@@ -91,23 +99,22 @@ st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 st.markdown("""
 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
     <div>
-        <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: #0f172a;">🗺️ Alur Kerja & Tahapan Pipeline</h3>
+        <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: #0f172a;">Alur Kerja & Tahapan Pipeline</h3>
         <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: #334155; font-weight: 500;">Setiap tahap dirancang bertahap untuk menjaga integritas metodologi penelitian deret waktu.</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 steps_info = [
-    ("1. Upload Dataset", "Unggah data historis panen padi dalam format CSV atau Excel (.xlsx/.xls).", "📂"),
-    ("2. Pengecekan Data", "Audit missing value, identifikasi baris duplikat, dan tentukan penanganan.", "🔍"),
-    ("3. Preprocessing", "Seleksi fitur masukan, tentukan variabel target, dan normalisasi (Min-Max/Standard).", "⚙️"),
-    ("4. Pengaturan Data", "Atur urutan waktu kronologis, time step sequence, dan rasio split latih/uji.", "⏱️"),
-    ("5. Pemilihan Model", "Pilih arsitektur LSTM Baseline atau optimasi metaheuristik LSTM-PSO.", "🧠"),
-    ("6. Training & Prediksi", "Latih model tanpa data leakage, pantau kurva loss, dan hasilkan prediksi.", "🚀"),
-    ("7. Evaluasi", "Analisis metrik evaluasi (MAE, MSE, RMSE, MAPE, R²), grafik aktual vs prediksi, & ekspor CSV.", "📊"),
+    ("1. Upload Dataset", "Unggah data historis panen padi dalam format CSV atau Excel (.xlsx/.xls).", "🌾"),
+    ("2. Pengecekan Data", "Audit missing value, identifikasi baris duplikat, dan tentukan penanganan.", "🌾"),
+    ("3. Preprocessing", "Seleksi fitur masukan, tentukan variabel target, wilayah kabupaten, dan normalisasi.", "🌾"),
+    ("4. Pengaturan Data", "Atur urutan waktu kronologis, time step sequence, kabupaten, dan rasio split latih/uji.", "🌾"),
+    ("5. Pemilihan Model", "Pilih arsitektur LSTM Baseline atau optimasi metaheuristik LSTM-PSO.", "🌾"),
+    ("6. Training & Prediksi", "Latih model tanpa data leakage, pantau kurva loss, dan hasilkan prediksi.", "🌾"),
+    ("7. Evaluasi", "Analisis metrik evaluasi (MAE, MSE, RMSE, MAPE, R²), grafik aktual vs prediksi, & ekspor CSV.", "🌾"),
 ]
 
-# Tampilkan Grid Tahapan 2 Baris (4 kolom & 3 kolom)
 grid_row1 = st.columns(4)
 for i in range(4):
     stage_idx = i + 1
@@ -117,7 +124,7 @@ for i in range(4):
     page_file = PAGE_FILES[i]
 
     with grid_row1[i]:
-        status_badge = "✅ Selesai" if done else ("🔓 Terbuka" if openable else "🔒 Terkunci")
+        status_badge = "Selesai" if done else ("Terbuka" if openable else "Terkunci")
         border_color = "#10b981" if done else ("#94a3b8" if openable else "#cbd5e1")
         bg_card = "#ffffff" if openable else "#f1f5f9"
         
@@ -134,9 +141,9 @@ for i in range(4):
         </div>
         """, unsafe_allow_html=True)
         if openable:
-            st.page_link(page_file, label=f"Buka Tahap {stage_idx} ➔", use_container_width=True)
+            st.page_link(page_file, label=f"Buka Tahap {stage_idx} ->", icon="🌾", use_container_width=True)
         else:
-            st.button(f"Terkunci 🔒", key=f"btn_locked_{stage_idx}", disabled=True, use_container_width=True)
+            st.button(f"Terkunci", key=f"btn_locked_{stage_idx}", disabled=True, use_container_width=True)
 
 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
@@ -149,7 +156,7 @@ for i in range(4, 7):
     page_file = PAGE_FILES[i]
 
     with grid_row2[i - 4]:
-        status_badge = "✅ Selesai" if done else ("🔓 Terbuka" if openable else "🔒 Terkunci")
+        status_badge = "Selesai" if done else ("Terbuka" if openable else "Terkunci")
         border_color = "#10b981" if done else ("#94a3b8" if openable else "#cbd5e1")
         bg_card = "#ffffff" if openable else "#f1f5f9"
         
@@ -166,16 +173,16 @@ for i in range(4, 7):
         </div>
         """, unsafe_allow_html=True)
         if openable:
-            st.page_link(page_file, label=f"Buka Tahap {stage_idx} ➔", use_container_width=True)
+            st.page_link(page_file, label=f"Buka Tahap {stage_idx} ->", icon="🌾", use_container_width=True)
         else:
-            st.button(f"Terkunci 🔒", key=f"btn_locked_{stage_idx}", disabled=True, use_container_width=True)
+            st.button(f"Terkunci", key=f"btn_locked_{stage_idx}", disabled=True, use_container_width=True)
 
 st.markdown("<div style='margin-bottom: 36px;'></div>", unsafe_allow_html=True)
 
 # --- METODOLOGI & KOMPARASI MODEL ---
-st.markdown("### 🔬 Panduan Metodologi & Arsitektur Model")
+st.markdown("### Panduan Metodologi & Arsitektur Model")
 
-tab1, tab2, tab3 = st.tabs(["🧠 Arsitektur LSTM vs LSTM-PSO", "🛡️ Protokol Anti-Data Leakage", "📐 Pedoman Interpretasi Metrik"])
+tab1, tab2, tab3 = st.tabs(["Arsitektur LSTM vs LSTM-PSO", "Protokol Anti-Data Leakage", "Pedoman Interpretasi Metrik"])
 
 with tab1:
     c_m1, c_m2 = st.columns(2)

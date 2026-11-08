@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from utils.data import infer_datetime_columns
+from utils.data import infer_datetime_columns, find_kabupaten_column, get_kabupaten_list, infer_data_frequency
 from utils.state import can_open, invalidate_from, mark_complete
 from utils.ui import stage_header, require_previous, render_step_navigation
 
 require_previous(3)
-stage_header("3. Preprocessing", "Konfigurasi variabel masukan, tetapkan target peramalan hasil panen, urutkan dimensi waktu, dan terapkan normalisasi data.")
+stage_header("3. Preprocessing", "Konfigurasi variabel masukan, tetapkan target peramalan hasil panen, filter wilayah kabupaten, dan terapkan normalisasi data.")
 
 df = st.session_state.clean_df
 if df is None:
@@ -16,64 +16,124 @@ if df is None:
 st.markdown(f"""
 <div style="background: #ffffff; border: 1px solid #d1fae5; border-radius: 12px; padding: 14px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
     <div>
-        <span style="font-weight: 700; color: #065f46;">📊 Dataset Siap Diproses:</span>
+        <span style="font-weight: 700; color: #065f46;">Dataset Siap Diproses:</span>
         <span style="color: #475569; margin-left: 8px;"><strong>{df.shape[0]:,}</strong> baris observasi × <strong>{df.shape[1]}</strong> kolom</span>
     </div>
     <span class="badge-pill badge-success">Status: Bersih</span>
 </div>
 """, unsafe_allow_html=True)
 
+# --- DETEKSI & PILIHAN KABUPATEN ---
+kab_col = find_kabupaten_column(df)
+kab_list = get_kabupaten_list(df, kab_col) if kab_col else []
+
+curr_selected_kab = st.session_state.get("selected_kabupaten", "Seluruh Data (Semua Kabupaten)")
+
+if kab_col and kab_list:
+    st.markdown("### Pemilihan Cakupan Wilayah (Filter Kabupaten)")
+    st.markdown(f"""
+    <div style="background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+        <span style="font-size: 0.88rem; color: #065f46; font-weight: 600;">
+            🌾 Terdeteksi kolom wilayah <code>{kab_col}</code> dengan {len(kab_list)} kabupaten: 
+            <strong>{', '.join(kab_list)}</strong>.
+            Anda dapat memilih untuk memproses <strong>Seluruh Data Gabungan</strong> atau memfilter khusus <strong>per-kabupaten</strong>.
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c_mode, c_kab = st.columns([1.2, 2])
+    with c_mode:
+        filter_mode_opts = ["Seluruh Data (Semua Kabupaten)", "Filter per Kabupaten Spesifik"]
+        curr_is_specific = curr_selected_kab in kab_list
+        selected_mode = st.radio(
+            "Cakupan Data:",
+            filter_mode_opts,
+            index=1 if curr_is_specific else 0,
+            help="Pilih apakah model dilatih pada seluruh kabupaten gabungan atau kabupaten tertentu."
+        )
+
+    with c_kab:
+        if selected_mode == "Filter per Kabupaten Spesifik":
+            kab_idx = kab_list.index(curr_selected_kab) if curr_selected_kab in kab_list else 0
+            chosen_kab = st.selectbox(
+                f"Pilih Kabupaten untuk Pelatihan & Prediksi:",
+                options=kab_list,
+                index=kab_idx,
+                help="Data akan disaring khusus untuk kabupaten yang Anda pilih."
+            )
+            selected_kab = chosen_kab
+            df_working = df[df[kab_col].astype(str) == selected_kab].copy().reset_index(drop=True)
+        else:
+            selected_kab = "Seluruh Data (Semua Kabupaten)"
+            df_working = df.copy()
+
+    # Otomatis deteksi frekuensi deret waktu pada data yang telah difilter
+    freq_lbl, freq_rsn, rec_ts = infer_data_frequency(df_working)
+
+    col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+    with col_kpi1:
+        st.metric("Wilayah Aktif", selected_kab if selected_kab != "Seluruh Data (Semua Kabupaten)" else "Semua Kabupaten", f"{len(df_working):,} Baris")
+    with col_kpi2:
+        st.metric("Frekuensi Terdeteksi Otomatis", freq_lbl, freq_rsn[:24] + "...")
+    with col_kpi3:
+        st.metric("Rekomendasi Time Step", f"{rec_ts} Periode", "Optimal untuk data")
+else:
+    df_working = df.copy()
+    selected_kab = "Seluruh Data (Semua Kabupaten)"
+    freq_lbl, freq_rsn, rec_ts = infer_data_frequency(df_working)
+
+st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+
 # --- KONFIGURASI PREPROCESSING ---
-st.markdown("### ⚙️ Pengaturan Fitur & Target")
+st.markdown("### Pengaturan Fitur & Target")
 
 c_left, c_right = st.columns(2)
 
 with c_left:
     st.markdown("""
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-        <h5 style="margin: 0 0 8px 0; color: #0f172a;">📅 1. Dimensi Waktu & Tanggal</h5>
+        <h5 style="margin: 0 0 8px 0; color: #0f172a;">1. Dimensi Waktu & Tanggal</h5>
         <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">Kolom tanggal digunakan untuk memastikan baris terurut secara kronologis.</p>
     </div>
     """, unsafe_allow_html=True)
     
-    date_candidates = infer_datetime_columns(df)
-    date_options = ["Tidak ada (Ikuti urutan baris)"] + list(df.columns)
+    date_candidates = infer_datetime_columns(df_working)
+    date_options = ["Tidak ada (Ikuti urutan baris)"] + list(df_working.columns)
     default_date_idx = (date_options.index(date_candidates[0])) if date_candidates and date_candidates[0] in date_options else 0
     date_col_choice = st.selectbox("Pilih kolom tanggal/waktu:", date_options, index=default_date_idx)
     date_col = None if date_col_choice.startswith("Tidak ada") else date_col_choice
 
     st.markdown("""
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; margin-top: 20px;">
-        <h5 style="margin: 0 0 8px 0; color: #0f172a;">🎯 2. Variabel Target (Output)</h5>
+        <h5 style="margin: 0 0 8px 0; color: #0f172a;">2. Variabel Target (Output)</h5>
         <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">Nilai yang akan diproyeksikan/diramalkan oleh model LSTM (misal: Produksi Panen).</p>
     </div>
     """, unsafe_allow_html=True)
     
-    numeric_cols = list(df.select_dtypes(include=["number"]).columns)
+    numeric_cols = list(df_working.select_dtypes(include=["number"]).columns)
     default_target_idx = 0
-    # Auto-detect target jika ada kata produksi/panen/yield
     for idx, col in enumerate(numeric_cols):
         if any(term in col.lower() for term in ["produksi", "panen", "yield", "target", "hasil"]):
             default_target_idx = idx
             break
             
-    target_col = st.selectbox("Pilih variabel target:", numeric_cols if numeric_cols else list(df.columns), index=default_target_idx)
+    target_col = st.selectbox("Pilih variabel target:", numeric_cols if numeric_cols else list(df_working.columns), index=default_target_idx)
 
 with c_right:
     st.markdown("""
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-        <h5 style="margin: 0 0 8px 0; color: #0f172a;">📊 3. Fitur Masukan (Input Variables)</h5>
-        <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">Pilih variabel masukan. <em>Catatan: Target harus disertakan agar sequence historisnya terbaca.</em></p>
+        <h5 style="margin: 0 0 8px 0; color: #0f172a;">3. Fitur Masukan (Input Variables)</h5>
+        <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">Pilih variabel masukan. <em>Catatan: Target harus disertakan agar sequence historisnya terbaca. Kolom teks/kategori tidak boleh dipilih.</em></p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Target harus termasuk di multiselect
-    initial_features = numeric_cols if numeric_cols else list(df.columns)
-    feature_cols = st.multiselect("Pilih fitur masukan:", list(df.columns), default=initial_features)
+    # Hanya kolom numerik yang dijadikan opsi fitur untuk mencegah error
+    available_features = numeric_cols if numeric_cols else list(df_working.columns)
+    feature_cols = st.multiselect("Pilih fitur masukan:", available_features, default=available_features)
 
     st.markdown("""
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; margin-top: 20px;">
-        <h5 style="margin: 0 0 8px 0; color: #0f172a;">⚖️ 4. Metode Normalisasi Data</h5>
+        <h5 style="margin: 0 0 8px 0; color: #0f172a;">4. Metode Normalisasi Data</h5>
         <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">Penskalaan nilai fitur agar konvergen optimal pada fungsi aktivasi LSTM.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -87,13 +147,13 @@ with c_right:
 
 st.markdown("<div style='margin-bottom: 24px;'></div>", unsafe_allow_html=True)
 
-if st.button("🚀 Terapkan Preprocessing & Simpan Konfigurasi", type="primary", use_container_width=True):
+if st.button("Terapkan Preprocessing & Simpan Konfigurasi", type="primary", use_container_width=True):
     if not feature_cols:
         st.error("Pilih minimal satu fitur masukan.")
     elif target_col not in feature_cols:
         st.error(f"Variabel target ('{target_col}') harus termasuk dalam daftar fitur masukan untuk membentuk deret waktu historis!")
     else:
-        out = df.copy()
+        out = df_working.copy()
         if date_col:
             out[date_col] = pd.to_datetime(out[date_col], errors="coerce", dayfirst=True)
             if out[date_col].isna().any():
@@ -115,22 +175,30 @@ if st.button("🚀 Terapkan Preprocessing & Simpan Konfigurasi", type="primary",
             st.session_state.target_col = target_col
             st.session_state.date_col = date_col
             st.session_state.scaler_name = scaler_key
+            st.session_state.selected_kabupaten = selected_kab
+            st.session_state.kabupaten_col = kab_col
+            st.session_state.detected_frequency = freq_lbl
+            st.session_state.frequency = freq_lbl
+            st.session_state.frequency_reason = freq_rsn
+            st.session_state.time_step = rec_ts
             mark_complete(3)
-            st.success("✅ Preprocessing berhasil diterapkan dan data telah diurutkan menurut waktu!")
+            kab_msg = f" untuk {selected_kab}" if selected_kab != "Seluruh Data (Semua Kabupaten)" else ""
+            st.success(f"Preprocessing berhasil diterapkan{kab_msg} (Frekuensi: {freq_lbl})! Data ({len(out):,} baris) siap diatur pada Tahap 4.")
             st.rerun()
 
 # --- STATISTIK DESKRIPTIF SETELAH PREPROCESSING ---
 preprocessed = st.session_state.get("preprocessed_df")
 if preprocessed is not None and st.session_state.get("feature_cols"):
     sel_feats = st.session_state.feature_cols
+    kab_info = st.session_state.get("selected_kabupaten", "Seluruh Data")
     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-    st.markdown("### 📈 Ringkasan Statistik Deskriptif Fitur Terpilih")
+    st.markdown(f"### Ringkasan Statistik Deskriptif Fitur Terpilih ({kab_info})")
     
     desc_df = preprocessed[sel_feats].describe().T[["count", "mean", "std", "min", "50%", "max"]]
     desc_df.columns = ["Jumlah", "Rata-rata (Mean)", "Standar Deviasi", "Nilai Min", "Median (50%)", "Nilai Max"]
     st.dataframe(desc_df.style.format("{:,.2f}"), use_container_width=True)
 
-    with st.expander("👁️ Pratinjau Data Hasil Preprocessing (30 Baris Pertama)"):
+    with st.expander(f"Pratinjau Data Hasil Preprocessing (30 Baris Pertama - {kab_info})"):
         st.dataframe(preprocessed[sel_feats].head(30), use_container_width=True)
 
 render_step_navigation(3)

@@ -12,13 +12,12 @@ PAGE_FILES = [
     "pages/7_Evaluasi.py",
 ]
 
-PAGE_ICONS = ["📂", "🔍", "⚙️", "⏱️", "🧠", "🚀", "📊"]
+PAGE_ICONS = ["🌾", "🌾", "🌾", "🌾", "🌾", "🌾", "🌾"]
 
 def apply_custom_css():
     """Menginjeksi CSS kustom modern dengan estetika Agriculture AI yang elegan."""
     st.markdown("""
     <style>
-    /* Import Google Fonts modern */
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
     html, body, [class*="css"], .stApp {
@@ -31,7 +30,6 @@ def apply_custom_css():
         font-family: 'JetBrains Mono', monospace !important;
     }
 
-    /* General Typography Contrast Fixes */
     p, span, div, li, label, h1, h2, h3, h4, h5, h6 {
         color: inherit;
     }
@@ -45,12 +43,10 @@ def apply_custom_css():
         font-weight: 500 !important;
     }
 
-    /* Hide redundant native Streamlit navigation on top of sidebar */
     [data-testid="stSidebarNav"] {
         display: none !important;
     }
 
-    /* Sidebar Styling */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #f0fdf4 0%, #f8fafc 100%) !important;
         border-right: 1px solid rgba(16, 185, 129, 0.2) !important;
@@ -60,7 +56,6 @@ def apply_custom_css():
         color: #1e293b;
     }
 
-    /* Streamlit Page Links (st.page_link) styling */
     [data-testid="stPageLink-NavLink"], [data-testid="stPageLink"] a {
         background-color: #ffffff !important;
         color: #0f172a !important;
@@ -94,7 +89,6 @@ def apply_custom_css():
         color: #047857 !important;
     }
 
-    /* Sidebar specific navigation links */
     [data-testid="stSidebar"] [data-testid="stPageLink-NavLink"],
     [data-testid="stSidebar"] [data-testid="stPageLink"] a {
         background: #ffffff !important;
@@ -102,7 +96,6 @@ def apply_custom_css():
         margin-bottom: 6px !important;
     }
 
-    /* Metric Card Modernization */
     [data-testid="stMetric"] {
         background: #ffffff !important;
         border: 1px solid rgba(16, 185, 129, 0.25) !important;
@@ -134,7 +127,6 @@ def apply_custom_css():
         font-weight: 600 !important;
     }
 
-    /* Button Enhancements */
     .stButton > button {
         border-radius: 10px !important;
         font-weight: 600 !important;
@@ -171,7 +163,6 @@ def apply_custom_css():
         box-shadow: none !important;
     }
 
-    /* Widget Labels & Inputs */
     [data-testid="stWidgetLabel"] p, label {
         color: #0f172a !important;
         font-weight: 600 !important;
@@ -186,7 +177,6 @@ def apply_custom_css():
         color: #0f172a !important;
     }
 
-    /* Card Containers */
     .agri-card {
         background: #ffffff;
         border-radius: 16px;
@@ -201,7 +191,6 @@ def apply_custom_css():
         border-color: rgba(16, 185, 129, 0.35);
     }
 
-    /* Stage Header Hero Banner */
     .stage-banner {
         background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%);
         border-radius: 18px;
@@ -246,7 +235,6 @@ def apply_custom_css():
         max-width: 850px;
     }
 
-    /* Badge & Tag styling */
     .badge-pill {
         display: inline-flex;
         align-items: center;
@@ -274,34 +262,6 @@ def apply_custom_css():
         border: 1px solid #bae6fd;
     }
 
-    /* Sidebar Progress Stepper */
-    .step-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 12px;
-        border-radius: 10px;
-        font-size: 0.88rem;
-        font-weight: 500;
-        margin-bottom: 4px;
-        color: #334155;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-    }
-    .step-item.completed {
-        background: #ecfdf5;
-        border-color: #a7f3d0;
-        color: #065f46;
-        font-weight: 600;
-    }
-    .step-item.active {
-        background: #f0fdf4;
-        border-color: #10b981;
-        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
-    }
-
-    /* Modern Tabs & Expander */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
         background-color: #e2e8f0 !important;
@@ -321,7 +281,6 @@ def apply_custom_css():
         box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
     }
 
-    /* Alerts / Callouts */
     .stAlert {
         border-radius: 12px !important;
         border: 1px solid rgba(0,0,0,0.06) !important;
@@ -331,22 +290,11 @@ def apply_custom_css():
         color: #0f172a !important;
     }
 
-    /* Dataframe styling */
     [data-testid="stDataFrame"] {
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid #cbd5e1;
         background: #ffffff;
-    }
-
-    /* Bottom Navigation Bar */
-    .step-nav-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 36px;
-        padding-top: 20px;
-        border-top: 1px solid #e2e8f0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -366,7 +314,6 @@ def render_sidebar():
         </div>
         """, unsafe_allow_html=True)
 
-        # Hitung kemajuan tahapan
         completed_count = sum(1 for n in range(1, 8) if is_complete(n))
         pct = int((completed_count / 7) * 100)
 
@@ -376,38 +323,38 @@ def render_sidebar():
         st.markdown("---")
         st.markdown("<p style='font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.8px; margin-bottom: 8px;'>Navigasi Pipeline</p>", unsafe_allow_html=True)
 
-        # Navigasi ke Beranda
-        st.page_link("app.py", label="Beranda (Dashboard)", icon="🏠")
+        st.page_link("app.py", label="Beranda (Dashboard)", icon="🌾")
 
-        # Navigasi ke setiap tahap
         for n, stage in enumerate(STAGES, start=1):
             done = is_complete(n)
             openable = can_open(n)
             page_path = PAGE_FILES[n - 1]
-            icon = "✅" if done else (PAGE_ICONS[n - 1] if openable else "🔒")
-            
-            # Label tahap tanpa nomor ganda
             clean_name = stage.split(". ", 1)[1] if ". " in stage else stage
             label = f"{n}. {clean_name}"
-            
+
             if openable:
-                st.page_link(page_path, label=label, icon=icon)
+                st.page_link(page_path, label=label, icon="🌾")
             else:
-                st.markdown(f"<div style='opacity: 0.55; padding: 4px 8px; font-size: 0.88rem; color: #64748b;'>🔒 {label}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='opacity: 0.55; padding: 4px 8px; font-size: 0.88rem; color: #64748b;'>[Terkunci] {label}</div>", unsafe_allow_html=True)
 
         st.markdown("---")
 
-        # Status Ringkas Sistem
         st.markdown("<p style='font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.8px; margin-bottom: 8px;'>Status Sistem</p>", unsafe_allow_html=True)
         raw_df = st.session_state.get("raw_df")
         model = st.session_state.get("trained_model")
         metrics = st.session_state.get("eval_metrics")
+        kab = st.session_state.get("selected_kabupaten", "Seluruh Data (Semua Kabupaten)")
 
         if raw_df is not None:
+            kab_badge = f"<div style='color: #059669; font-size: 0.74rem; font-weight: 600; margin-top: 2px;'>Wilayah: {kab}</div>" if kab != "Seluruh Data (Semua Kabupaten)" else ""
+            freq_curr = st.session_state.get("frequency", "Bulanan (Monthly)")
+            freq_badge = f"<div style='color: #0284c7; font-size: 0.74rem; font-weight: 600; margin-top: 1px;'>Frekuensi: {freq_curr}</div>"
             st.markdown(f"""
             <div style="background: #ffffff; border: 1px solid #d1fae5; border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 0.8rem;">
-                <div style="color: #065f46; font-weight: 700;">📊 Dataset Siap</div>
+                <div style="color: #065f46; font-weight: 700;">Dataset Siap</div>
                 <div style="color: #475569; margin-top: 2px;">{raw_df.shape[0]:,} baris × {raw_df.shape[1]} kolom</div>
+                {kab_badge}
+                {freq_badge}
                 <div style="color: #64748b; font-size: 0.74rem; margin-top: 2px;">File: {st.session_state.get('source_name', 'Dataset')}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -419,17 +366,17 @@ def render_sidebar():
             r2_str = f"R²: {r2_val:.4f}" if (r2_val is not None and not str(r2_val) == 'nan') else "Telah dilatih"
             st.markdown(f"""
             <div style="background: #ffffff; border: 1px solid #bae6fd; border-radius: 10px; padding: 10px; margin-bottom: 12px; font-size: 0.8rem;">
-                <div style="color: #0369a1; font-weight: 700;">🧠 {st.session_state.get('model_choice', 'Model')}</div>
+                <div style="color: #0369a1; font-weight: 700;">{st.session_state.get('model_choice', 'Model')}</div>
                 <div style="color: #0284c7; font-weight: 600; margin-top: 2px;">{r2_str}</div>
             </div>
             """, unsafe_allow_html=True)
 
-        # Tombol Reset
-        if st.button("🔄 Reset Seluruh Sesi", use_container_width=True, help="Menghapus semua data dan memulai dari awal"):
+        if st.button("Reset Seluruh Sesi", use_container_width=True, help="Menghapus semua data dan memulai dari awal"):
             invalidate_from(1)
             st.session_state.raw_df = None
             st.session_state.source_name = None
             st.session_state.completed = set()
+            st.session_state.selected_kabupaten = "Seluruh Data (Semua Kabupaten)"
             st.rerun()
 
 def stage_header(title, description, icon="🌾", stage_number=None):
@@ -438,7 +385,6 @@ def stage_header(title, description, icon="🌾", stage_number=None):
     apply_custom_css()
     render_sidebar()
 
-    # Ekstraksi nomor tahap dari title jika tidak diberikan
     if stage_number is None and title and title[0].isdigit():
         try:
             stage_number = int(title.split(".")[0].strip())
@@ -468,7 +414,7 @@ def require_previous(stage_number: int):
 
         st.markdown(f"""
         <div class="agri-card" style="text-align: center; padding: 40px 20px;">
-            <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: #64748b; margin-bottom: 8px;">Akses Terbatas</div>
             <h3 style="color: #0f172a; margin-bottom: 8px;">Tahap Ini Masih Terkunci</h3>
             <p style="color: #64748b; max-width: 500px; margin: 0 auto 20px auto;">
                 Untuk menjaga integritas alur penelitian deret waktu, Anda perlu menyelesaikan 
@@ -479,7 +425,7 @@ def require_previous(stage_number: int):
         
         c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
-            st.page_link(prereq_page, label=f"Buka {prereq_name} ➔", icon="📂", use_container_width=True)
+            st.page_link(prereq_page, label=f"Buka {prereq_name} ->", icon="🌾", use_container_width=True)
         st.stop()
 
 def render_step_navigation(current_stage: int, next_page: str = None, next_label: str = None):
@@ -491,10 +437,10 @@ def render_step_navigation(current_stage: int, next_page: str = None, next_label
         prev_page = PAGE_FILES[current_stage - 2]
         prev_name = STAGES[current_stage - 2].split(". ", 1)[1]
         with c_prev:
-            st.page_link(prev_page, label=f"⬅️ Tahap {current_stage-1}: {prev_name}", use_container_width=True)
+            st.page_link(prev_page, label=f"Tahap {current_stage-1}: {prev_name}", use_container_width=True)
 
     if current_stage < 7 and is_complete(current_stage):
         target_page = next_page or PAGE_FILES[current_stage]
-        target_name = next_label or f"Lanjut ke Tahap {current_stage+1} ➔"
+        target_name = next_label or f"Lanjut ke Tahap {current_stage+1} ->"
         with c_next:
-            st.page_link(target_page, label=target_name, icon="➡️", use_container_width=True)
+            st.page_link(target_page, label=target_name, icon="🌾", use_container_width=True)

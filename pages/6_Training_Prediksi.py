@@ -19,17 +19,18 @@ if not params:
     st.stop()
 
 # --- PRE-FLIGHT CHECKLIST ---
-st.markdown("### 📋 Ringkasan Parameter Pra-Pelatihan")
+st.markdown("### Ringkasan Parameter Pra-Pelatihan")
 
 p_model = st.session_state.model_choice
 p_target = st.session_state.target_col
 p_feats = st.session_state.feature_cols
 p_ts = st.session_state.time_step
 p_split = st.session_state.split_ratio
+p_kab = st.session_state.get("selected_kabupaten", "Seluruh Data (Semua Kabupaten)")
 
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    st.metric("Model Terpilih", p_model)
+    st.metric("Model Terpilih", p_model, f"Wilayah: {p_kab[:15]}")
 with c2:
     st.metric("Variabel Target", str(p_target)[:16])
 with c3:
@@ -37,7 +38,8 @@ with c3:
 with c4:
     st.metric("Rasio Split (Latih / Uji)", f"{p_split:.0%} / {1-p_split:.0%}")
 
-with st.expander("🔍 Rincian Hyperparameter & Fitur Masukan", expanded=False):
+with st.expander("Rincian Hyperparameter & Fitur Masukan", expanded=False):
+    st.write(f"**Wilayah / Kabupaten:** {p_kab}")
     st.write("**Fitur Masukan:**", ", ".join(p_feats))
     st.json({k: v for k, v in params.items() if k != "pso"})
     if p_model == "LSTM-PSO":
@@ -47,7 +49,7 @@ with st.expander("🔍 Rincian Hyperparameter & Fitur Masukan", expanded=False):
 st.markdown("<div style='margin-bottom: 24px;'></div>", unsafe_allow_html=True)
 
 # --- TOMBOL RUN TRAINING ---
-if st.button("🚀 Mulai Pelatihan & Hasilkan Prediksi", type="primary", use_container_width=True):
+if st.button("Mulai Pelatihan & Hasilkan Prediksi", type="primary", use_container_width=True):
     try:
         status_box = st.status("Sedang mempersiapkan data sequence & melatih arsitektur neural network...", expanded=True)
         with status_box:
@@ -124,7 +126,7 @@ if st.button("🚀 Mulai Pelatihan & Hasilkan Prediksi", type="primary", use_con
                 "target_col": p_target,
             }
             mark_complete(6)
-            status_box.update(label="✅ Pelatihan & Proyeksi Selesai dengan Sukses!", state="complete", expanded=False)
+            status_box.update(label="Pelatihan & Proyeksi Selesai dengan Sukses!", state="complete", expanded=False)
         st.rerun()
 
     except Exception as exc:
@@ -134,7 +136,7 @@ if st.button("🚀 Mulai Pelatihan & Hasilkan Prediksi", type="primary", use_con
 # --- HASIL TRAINING AKTIF ---
 if st.session_state.get("trained_model") is not None:
     st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
-    st.markdown("### 📊 Analisis Proses Pelatihan")
+    st.markdown("### Analisis Proses Pelatihan")
 
     info = st.session_state.training_info
     s1, s2, s3 = st.columns(3)
@@ -150,7 +152,7 @@ if st.session_state.get("trained_model") is not None:
         best = st.session_state.best_pso
         st.markdown(f"""
         <div style="background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 16px 20px; margin: 18px 0;">
-            <div style="color: #1e40af; font-weight: 700; margin-bottom: 6px;">🏆 Hasil Optimasi Swarm PSO (Global Best):</div>
+            <div style="color: #1e40af; font-weight: 700; margin-bottom: 6px;">Hasil Optimasi Swarm PSO (Global Best):</div>
             <div style="display: flex; gap: 24px; font-size: 0.88rem; color: #1e3a8a;">
                 <span><strong>Unit LSTM Terpilih:</strong> {best['units']}</span>
                 <span><strong>Learning Rate Terpilih:</strong> {best['learning_rate']:.5f}</span>
@@ -160,7 +162,7 @@ if st.session_state.get("trained_model") is not None:
         </div>
         """, unsafe_allow_html=True)
 
-    tab_loss, tab_pso_chart = st.tabs(["📉 Kurva Konvergensi Loss (MSE)", "🐝 Konvergensi Fitness PSO"])
+    tab_loss, tab_pso_chart = st.tabs(["Kurva Konvergensi Loss (MSE)", "Konvergensi Fitness PSO"])
 
     with tab_loss:
         history = info.get("history", {})
@@ -185,7 +187,7 @@ if st.session_state.get("trained_model") is not None:
 
     st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
     st.download_button(
-        "📥 Unduh Hasil Prediksi Mentah (CSV)",
+        "Unduh Hasil Prediksi Mentah (CSV)",
         data=pd.DataFrame({"Aktual": st.session_state.y_test, "Prediksi": st.session_state.y_pred}).to_csv(index=False).encode("utf-8"),
         file_name="hasil_prediksi_padi.csv",
         mime="text/csv",
@@ -193,8 +195,8 @@ if st.session_state.get("trained_model") is not None:
 
     # ====== PREDIKSI TAHUN 2026 ======
     st.markdown("---")
-    st.markdown("### 🔮 Prediksi Hasil Panen Padi Tahun 2026")
-    st.caption(f"Prediksi dilakukan secara rekursif berdasarkan time step = **{p_ts} periode**. Setiap langkah prediksi menggunakan output prediksi sebelumnya sebagai input berikutnya.")
+    st.markdown(f"### 🌾 Prediksi Hasil Panen Padi Tahun 2026 ({p_kab})")
+    st.caption(f"Prediksi dilakukan secara rekursif berdasarkan time step = **{p_ts} periode** untuk wilayah **{p_kab}**. Output prediksi sebelumnya menjadi input langkah berikutnya.")
 
     model_2026 = st.session_state.trained_model
     scaler_x_2026 = st.session_state.scaler_x
@@ -208,26 +210,35 @@ if st.session_state.get("trained_model") is not None:
         scaler_name_2026 = st.session_state.get("scaler_name", "Min-Max")
         scaler_cls_2026 = MinMaxScaler if scaler_name_2026 == "Min-Max" else StandardScaler
 
-        # Ambil data terakhir sebagai seed
-        # Pastikan hanya kolom numerik yang digunakan (filter Timestamp/object)
+        # Filter numerik dengan aman
         work_numeric_2026 = df_work[p_feats_2026].copy()
         for col in work_numeric_2026.columns:
             if hasattr(work_numeric_2026[col], "dt") or pd.api.types.is_datetime64_any_dtype(work_numeric_2026[col]):
-                # Konversi datetime ke ordinal int agar bisa di-scale
                 work_numeric_2026[col] = work_numeric_2026[col].apply(
                     lambda x: x.toordinal() if pd.notnull(x) else 0
                 )
             elif work_numeric_2026[col].dtype == object:
-                # Coba konversi ke numeric, isi NaN dengan 0
                 work_numeric_2026[col] = pd.to_numeric(work_numeric_2026[col], errors="coerce").fillna(0)
         work_arr_2026 = work_numeric_2026.values.astype(float)
         x_all_2026 = scaler_x_2026.transform(work_arr_2026)
 
-        # Tentukan jumlah prediksi berdasarkan time_step: minimal 4 (triwulan), atau sesuai time step
-        n_pred_2026 = max(4, p_ts)  # setidaknya 4 periode untuk Q1-Q4
+        user_freq = st.session_state.get("frequency", "Bulanan (Monthly)")
+        if "Tahunan" in user_freq:
+            n_pred_2026 = max(3, p_ts)
+            period_labels_2026 = [f"Tahun {2026 + i}" for i in range(n_pred_2026)]
+        elif "Musim" in user_freq:
+            n_pred_2026 = max(3, p_ts)
+            period_labels_2026 = [f"Musim Tanam {i+1} / 2026" for i in range(n_pred_2026)]
+        else:
+            # Bulanan default: 12 bulan (1 tahun penuh) atau minimal 4 kuartal
+            n_pred_2026 = max(12, p_ts)
+            nama_bulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+            period_labels_2026 = [
+                f"{nama_bulan[i % 12]} {2026 + (i // 12)}" if i < 24 else f"Bulan {i+1} / 2026"
+                for i in range(n_pred_2026)
+            ]
 
-        # Recursive forecast
-        last_window = x_all_2026[-p_ts:].copy()  # shape (time_step, n_features)
+        last_window = x_all_2026[-p_ts:].copy()
         target_idx = p_feats_2026.index(p_target_2026)
 
         preds_scaled_2026 = []
@@ -236,21 +247,15 @@ if st.session_state.get("trained_model") is not None:
             inp = window.reshape(1, p_ts, len(p_feats_2026))
             pred_s = model_2026.predict(inp, verbose=0).ravel()[0]
             preds_scaled_2026.append(pred_s)
-            # Geser window dan update nilai target
             new_row = window[-1].copy()
             new_row[target_idx] = pred_s
             window = np.vstack([window[1:], new_row])
 
-        # Inverse transform ke satuan asli
         preds_2026 = scaler_y_2026.inverse_transform(np.array(preds_scaled_2026).reshape(-1, 1)).ravel()
 
-        # Buat label periode
-        period_labels_2026 = [f"Periode {i+1} / 2026" for i in range(n_pred_2026)]
-
-        # Tampilkan metrik ringkas
         st.markdown(f"""
         <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: 14px; padding: 20px 24px; color: white; margin-bottom: 20px;">
-            <h4 style="margin: 0 0 8px 0; color: #a7f3d0;">📊 Ringkasan Prediksi 2026</h4>
+            <h4 style="margin: 0 0 8px 0; color: #a7f3d0;">🌾 Ringkasan Prediksi 2026 ({p_kab})</h4>
             <div style="display: flex; gap: 32px; flex-wrap: wrap;">
                 <div><span style="font-size: 0.8rem; color: #d1fae5;">Jumlah Periode Diprediksi</span><br><strong style="font-size: 1.4rem;">{n_pred_2026} Periode</strong></div>
                 <div><span style="font-size: 0.8rem; color: #d1fae5;">Total Prediksi (Quintal)</span><br><strong style="font-size: 1.4rem;">{sum(preds_2026):,.2f} Kw</strong></div>
@@ -260,7 +265,6 @@ if st.session_state.get("trained_model") is not None:
         </div>
         """, unsafe_allow_html=True)
 
-        # Tabel prediksi
         df_pred_2026 = pd.DataFrame({
             "Periode": period_labels_2026,
             "Prediksi (Quintal/Kw)": preds_2026,
@@ -272,8 +276,7 @@ if st.session_state.get("trained_model") is not None:
             "Prediksi (Ton)": "{:,.3f}",
         }), use_container_width=True)
 
-        # Grafik line prediksi 2026
-        st.markdown("#### 📈 Grafik Prediksi Deret Waktu 2026")
+        st.markdown("#### Grafik Prediksi Deret Waktu 2026")
         chart_df_2026 = pd.DataFrame({
             "Periode": period_labels_2026,
             "Prediksi (Quintal)": preds_2026,
@@ -281,10 +284,9 @@ if st.session_state.get("trained_model") is not None:
         st.line_chart(chart_df_2026, color=["#10b981"])
 
         # === ANALISIS KUARTAL (Q1–Q4) ===
-        st.markdown("#### 📊 Analisis Per Kuartal Tahun 2026")
+        st.markdown("#### Analisis Per Kuartal Tahun 2026")
         st.caption("Pembagian kuartal dilakukan secara merata dari total periode yang diprediksi.")
 
-        # Bagi ke 4 kuartal secara proporsional
         n = len(preds_2026)
         q_size = n // 4
         remainder = n % 4
@@ -306,13 +308,12 @@ if st.session_state.get("trained_model") is not None:
             "Total (Ton)": [v/10 for v in q_vals],
         })
 
-        # Kolom: bar chart kuartal + tabel total
         col_bar, col_tot = st.columns([2, 1])
         with col_bar:
             st.bar_chart(q_df.set_index("Kuartal")[["Total (Quintal/Kw)"]], color=["#059669"])
             st.caption("Diagram batang total produksi per kuartal (Quintal/Kw)")
         with col_tot:
-            st.markdown("**📋 Rincian Per Kuartal**")
+            st.markdown("**Rincian Per Kuartal**")
             for _, row in q_df.iterrows():
                 st.metric(
                     label=row["Kuartal"],
@@ -321,18 +322,18 @@ if st.session_state.get("trained_model") is not None:
                 )
             st.markdown(f"""
             <div style="background: #f0fdf4; border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 12px 16px; margin-top: 12px;">
-                <div style="font-weight: 700; color: #065f46; margin-bottom: 4px;">🧮 Total Keseluruhan 2026</div>
+                <div style="font-weight: 700; color: #065f46; margin-bottom: 4px;">Total Keseluruhan 2026</div>
                 <div style="font-size: 1.1rem; font-weight: 700; color: #059669;">{sum(q_vals):,.2f} Kw</div>
                 <div style="font-size: 0.9rem; color: #047857;">{sum(q_vals)/10:,.3f} Ton</div>
             </div>
             """, unsafe_allow_html=True)
 
-        # Download prediksi 2026
         st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+        safe_kab = p_kab.replace(" ", "_").replace("(", "").replace(")", "").lower()
         st.download_button(
-            "📥 Unduh Prediksi 2026 (CSV)",
+            "Unduh Prediksi 2026 (CSV)",
             data=df_pred_2026.to_csv(index=False).encode("utf-8"),
-            file_name="prediksi_panen_2026.csv",
+            file_name=f"prediksi_panen_2026_{safe_kab}.csv",
             mime="text/csv",
             use_container_width=True,
         )

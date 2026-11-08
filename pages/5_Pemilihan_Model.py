@@ -19,7 +19,7 @@ if model_choice == "LSTM Baseline":
     st.markdown("""
     <div style="background: #f0fdf4; border: 1.5px solid #a7f3d0; border-radius: 14px; padding: 18px 24px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-            <span style="font-size: 1.4rem;">🧠</span>
+            <span style="font-size: 1.4rem;">🌾</span>
             <h4 style="margin: 0; color: #065f46; font-size: 1.05rem;">Model: LSTM Baseline (Standard)</h4>
         </div>
         <p style="margin: 0; font-size: 0.88rem; color: #334155; line-height: 1.5;">
@@ -31,7 +31,7 @@ else:
     st.markdown("""
     <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 18px 24px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-            <span style="font-size: 1.4rem;">🐝</span>
+            <span style="font-size: 1.4rem;">🌾</span>
             <h4 style="margin: 0; color: #1e40af; font-size: 1.05rem;">Model: LSTM-PSO (Optimasi Metaheuristik Swarm)</h4>
         </div>
         <p style="margin: 0; font-size: 0.88rem; color: #334155; line-height: 1.5;">
@@ -41,7 +41,7 @@ else:
     """, unsafe_allow_html=True)
 
 # --- HYPERPARAMETER CORE ---
-st.markdown("### 🎛️ Konfigurasi Arsitektur Jaringan")
+st.markdown("### Konfigurasi Arsitektur Jaringan")
 
 c1, c2, c3 = st.columns(3)
 
@@ -76,12 +76,12 @@ with c3:
     epochs = st.selectbox("Maksimum Epoch Pelatihan:", [10, 20, 30, 40, 50, 60, 70, 80, 90, 100], index=4)
 
 validation_split = st.selectbox("Proporsi Validasi Internal (Chronological Tail):", [0.05, 0.10, 0.15, 0.20, 0.25, 0.30], index=2)
-st.caption("ℹ️ Validasi menggunakan potongan akhir data latih secara kronologis (tanpa shuffle) untuk early stopping & evaluasi fitness.")
+st.caption("Validasi menggunakan potongan akhir data latih secara kronologis (tanpa shuffle) untuk early stopping & evaluasi fitness.")
 
 pso_config = {}
 if model_choice == "LSTM-PSO":
     st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
-    st.markdown("### 🐝 Konfigurasi Particle Swarm Optimization (PSO)")
+    st.markdown("### Konfigurasi Particle Swarm Optimization (PSO)")
 
     p1, p2, p3 = st.columns(3)
     with p1:
@@ -112,7 +112,7 @@ if model_choice == "LSTM-PSO":
 
 st.markdown("<div style='margin-bottom: 24px;'></div>", unsafe_allow_html=True)
 
-if st.button("🚀 Simpan Konfigurasi Model", type="primary", use_container_width=True):
+if st.button("Simpan Konfigurasi Model", type="primary", use_container_width=True):
     invalidate_from(5)
     st.session_state.model_choice = model_choice
     st.session_state.model_params = {
@@ -126,7 +126,7 @@ if st.button("🚀 Simpan Konfigurasi Model", type="primary", use_container_widt
         "pso": pso_config,
     }
     mark_complete(5)
-    st.success(f"✅ Konfigurasi **{model_choice}** berhasil disimpan!")
+    st.success(f"Konfigurasi **{model_choice}** berhasil disimpan!")
     st.rerun()
 
 render_step_navigation(5)
